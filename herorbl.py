@@ -47,7 +47,7 @@ TAG_WIDTH       = 12
 MSG_WIDTH       = 16
 PING_SAMPLES    = 5
 BRACKET_FACTOR  = 0.8
-CURRENT_VERSION = "v3.4.3-Rev.2026.08.09"
+CURRENT_VERSION = "v3.4.4-Rev.2026.08.09"
 
 # ─────────────────────── JITTER CONFIG ─────────────────────── #
 JITTER_MIN_MS = 1.0
@@ -847,8 +847,10 @@ class _LogTee:
 
 def _setup_file_log() -> str | None:
     ts = datetime.now().strftime("%Y%m%d-%H%M%S")
-    log_path = os.path.join(os.path.expanduser("~"), f"ubl-{ts}.log")
+    log_dir = os.path.join(os.path.expanduser("~"), "mchrbl-cli", "log")
     try:
+        os.makedirs(log_dir, exist_ok=True)
+        log_path = os.path.join(log_dir, f"ubl-{ts}.log")
         sys.stdout = _LogTee(sys.stdout, log_path)
     except OSError as e:
         log("[Warn!]", f"Log file gagal dibuat: {e}", Fore.YELLOW)

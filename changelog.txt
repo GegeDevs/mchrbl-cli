@@ -1,3 +1,7 @@
+v3.4.4-Rev.2026.08.09
+[Improvement]
+- Log Location: File log pindah ke ~/mchrbl-cli/log/ (folder dibuat otomatis).
+--------
 v3.4.3-Rev.2026.08.09
 [New Feature]
 - File Logging: Semua output kini otomatis tercatat ke ~/ubl-<tanggal-jam>.log (tanpa warna ANSI). Update countdown tidak ikut ter-spam ke file.
