@@ -72,6 +72,35 @@ ubl-go
 
 ---
 
+## 🖥️ Instalasi di VPS (Debian / Ubuntu)
+
+Tool ini juga bisa dijalankan di VPS Linux (Debian 11/12, Ubuntu 20.04+, Linux Mint). Koneksi VPS ke server Xiaomi (sgp-api.buy.mi.com) biasanya lebih stabil dan latensinya lebih rendah daripada HP — cocok buat yang mau maksimalin peluang rebut tiket.
+
+```bash
+bash <(curl -s https://raw.githubusercontent.com/GegeDevs/mchrbl-cli/refs/heads/main/install-debian.sh)
+```
+
+Lalu jalankan:
+
+```bash
+ubl-go
+```
+
+**Catatan VPS:**
+1. Jalankan lewat `tmux`/`screen` biar proses tidak ikut mati saat koneksi SSH putus:
+   ```bash
+   tmux new -s ubl
+   ubl-go
+   ```
+2. Set zona waktu VPS ke WIB supaya perhitungan jam war akurat:
+   ```bash
+   sudo timedatectl set-timezone Asia/Jakarta
+   ```
+3. Waktu war tetap **22:55 WIB** — pastikan VPS online dan jam tersinkron NTP.
+4. Cookie diambil dari HP lewat sniffer (cara di bawah), lalu tinggal di-paste saat pertama jalan di VPS.
+
+---
+
 ## 🔑 Cara ambil "Cookie" di Android
 
 1. Install aplikasi network sniffer bebas: **([Proxyman](https://play.google.com/store/apps/details?id=com.proxyman.proxymanandroid), [HTTP Toolkit](https://play.google.com/store/apps/details?id=tech.httptoolkit.android.v1), [HTTP Sniffer](https://play.google.com/store/apps/details?id=com.anetcapture.mock), [PCAPdroid](https://play.google.com/store/apps/details?id=com.emanuelef.remote_capture))**

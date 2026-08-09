@@ -73,6 +73,35 @@ ubl-go
  
 ---
 
+## 🖥️ Installation on VPS (Debian / Ubuntu)
+
+This tool can also run on a Linux VPS (Debian 11/12, Ubuntu 20.04+, Linux Mint). A VPS connection to Xiaomi's server (sgp-api.buy.mi.com) is usually more stable and lower-latency than a phone — ideal to maximize your chances of grabbing a slot.
+
+```bash
+bash <(curl -s https://raw.githubusercontent.com/GegeDevs/mchrbl-cli/refs/heads/main/install-debian.sh)
+```
+
+Then run:
+
+```bash
+ubl-go
+```
+
+**VPS Notes:**
+1. Run it inside `tmux`/`screen` so the process survives SSH disconnects:
+   ```bash
+   tmux new -s ubl
+   ubl-go
+   ```
+2. Set the VPS timezone to WIB so the war-time calculation is accurate:
+   ```bash
+   sudo timedatectl set-timezone Asia/Jakarta
+   ```
+3. The reset window is still **22:55 WIB** — make sure the VPS is online and NTP-synced.
+4. Capture the cookie on your phone (guide below), then paste it when prompted on the VPS.
+
+---
+
 ## 🔑 How to Capture "Cookie" on Android
  1. Install any network packet sniffer app of your choice: **(Proxyman, HTTP Toolkit, HTTP Sniffer, PCAPdroid)**
  2. Start the sniffer app; it will typically ask for VPN permissions to capture traffic locally.
