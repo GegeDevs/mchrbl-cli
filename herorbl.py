@@ -47,7 +47,7 @@ TAG_WIDTH       = 12
 MSG_WIDTH       = 16
 PING_SAMPLES    = 5
 BRACKET_FACTOR  = 0.8
-CURRENT_VERSION = "v3.4.4-Rev.2026.08.09"
+CURRENT_VERSION = "v3.4.5-Rev.2026.08.09"
 
 # ─────────────────────── JITTER CONFIG ─────────────────────── #
 JITTER_MIN_MS = 1.0
@@ -112,6 +112,13 @@ _FALLBACK_TEXTS: dict[str, str] = {
     "lang_ok": "Language pack installed!",
     "lang_fail": "Failed to download language: {}",
     "lang_load_fail": "Failed to load language file: {}",
+    "token_update_hint": "Tekan [u] untuk update token darurat",
+    "token_update_slot": "Ganti Token A (1) atau Token B (2)? [default A]: ",
+    "token_update_paste": "Paste Token {} baru: ",
+    "token_update_ok": "Token {} berhasil diganti.",
+    "token_update_fail": "Token {} baru invalid. Token lama dipertahankan.",
+    "token_update_cancel": "Update token dibatalkan.",
+    "token_update_late": "Terlalu dekat dengan war (<30 detik). Update token dibatalkan.",
     "wake_lock": "Wake-lock aktif (Anti-Doze)",
 }
 
@@ -770,21 +777,75 @@ def _format_remain(ms: float) -> str:
     return f"{h % 24:02d}:{m:02d}:{s_:02d}" if s >= 60 else f"{s_:02d}s"
 
 
+def _enter_cbreak():
+    """Aktifkan mode cbreak (baca 1 tombol tanpa Enter). None jika tidak didukung."""
+    try:
+        import termios
+        import tty
+        fd = sys.stdin.fileno()
+        old = termios.tcgetattr(fd)
+        tty.setcbreak(fd)
+        return (fd, old)
+    except Exception:
+        return None
+
+
+def _exit_cbreak(state) -> None:
+    if state is None:
+        return
+    try:
+        import termios
+        fd, old = state
+        termios.tcsetattr(fd, termios.TCSADRAIN, old)
+    except Exception:
+        pass
+
+
+def _poll_key(state) -> str | None:
+    """Baca input non-blocking. Mengembalikan tombol (strip) atau None."""
+    if state is None:
+        return None
+    try:
+        import select
+        fd = state[0]
+        r, _, _ = select.select([fd], [], [], 0)
+        if not r:
+            return None
+        data = os.read(fd, 4096).decode("utf-8", errors="replace")
+        return data.strip() or None
+    except Exception:
+        return None
+
+
 def _countdown(
     label:        str,
     until_ms:     float,
     base_time_ms: int,
     perf_base_ns: int,
     offset_ms:    float,
+    hotkey_handler=None,
 ) -> None:
     prefix = colored(f"{'[Wait!]':<{LABEL_WIDTH}}", Fore.CYAN)
-    while True:
-        remain = until_ms - get_accurate_now_ms(base_time_ms, perf_base_ns, offset_ms)
-        if remain <= 0:
-            break
-        dots = "." * (int(time.time() * 2) % 4)
-        print(f"{prefix} {label} {_format_remain(remain):<8} {dots:<3}", end="\r", flush=True)
-        time.sleep(0.05)
+    cbreak = _enter_cbreak()
+    try:
+        if hotkey_handler is not None:
+            print(f"{prefix} {_t('token_update_hint')}")
+        while True:
+            remain = until_ms - get_accurate_now_ms(base_time_ms, perf_base_ns, offset_ms)
+            if remain <= 0:
+                break
+            dots = "." * (int(time.time() * 2) % 4)
+            print(f"{prefix} {label} {_format_remain(remain):<8} {dots:<3}", end="\r", flush=True)
+            if hotkey_handler is not None:
+                ch = _poll_key(cbreak)
+                if ch:
+                    try:
+                        hotkey_handler(ch, remain)
+                    except Exception as e:
+                        log("[Error.]", f"Hotkey error: {e}", Fore.RED)
+            time.sleep(0.05)
+    finally:
+        _exit_cbreak(cbreak)
     print()
 
 
@@ -972,7 +1033,43 @@ def main() -> None:
         safety_margin = 30
 
     # ── 5. Tunggu fase ping ──
-    _countdown(_t("wait_start"), target_ms - 15_000, time_base, perf_base, ntp_offset)
+    def _emergency_token_update() -> None:
+        nonlocal cookie_a, cookie_b, valid_a, valid_b
+        print()
+        slot = input(
+            colored(f'{"[Input!]":<{LABEL_WIDTH}}', Fore.BLUE) + " " + _t("token_update_slot")
+        ).strip().lower()
+        target = "B" if slot in ("2", "b") else "A"
+        raw = getpass.getpass(
+            colored(f'{"[Input!]":<{LABEL_WIDTH}}', Fore.BLUE) + " " + _t("token_update_paste", target)
+        )
+        new_cookie = _normalize_cookie(raw)
+        if not new_cookie:
+            log("[Info.]", _t("token_update_cancel"), Fore.WHITE)
+            return
+        log("[Check!]", _t("cookie_check", target), Fore.MAGENTA)
+        if test_cookie(new_cookie, f"Token-{target}"):
+            if target == "A":
+                cookie_a, valid_a = new_cookie, True
+            else:
+                cookie_b, valid_b = new_cookie, True
+            log("[Success.]", _t("token_update_ok", target), Fore.GREEN)
+        else:
+            log("[Error.]", _t("token_update_fail", target), Fore.RED)
+
+    def _hotkey(ch: str, remain_ms: float) -> None:
+        if ch.lower() != "u":
+            return
+        if remain_ms < 30_000:
+            log("[Warn!]", _t("token_update_late"), Fore.YELLOW)
+            return
+        _emergency_token_update()
+
+    _countdown(
+        _t("wait_start"), target_ms - 15_000,
+        time_base, perf_base, ntp_offset,
+        hotkey_handler=_hotkey,
+    )
 
     # ── 6. Ping sampling ──
     log("[Info.]", _t("ping_go", PING_SAMPLES, server_ip), Fore.WHITE)

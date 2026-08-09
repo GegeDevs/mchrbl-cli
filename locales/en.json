@@ -65,5 +65,12 @@
   "lang_ok": "Language pack installed!",
   "lang_fail": "Failed to download language: {}",
   "lang_load_fail": "Failed to load language file: {}",
+  "token_update_hint": "Press [u] to update emergency token",
+  "token_update_slot": "Replace Token A (1) or Token B (2)? [default A]: ",
+  "token_update_paste": "Paste new Token {}: ",
+  "token_update_ok": "Token {} replaced.",
+  "token_update_fail": "New Token {} invalid. Keeping old token.",
+  "token_update_cancel": "Token update cancelled.",
+  "token_update_late": "Too close to war (<30s). Token update cancelled.",
   "wake_lock": "Wake-lock active (Anti-Doze)"
 }
