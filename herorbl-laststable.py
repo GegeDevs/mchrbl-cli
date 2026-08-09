@@ -71,7 +71,7 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(sys.argv[0]))
 LANG_FILE = os.path.join(SCRIPT_DIR, ".lang_config")
 LOCALE_DIR = os.path.join(SCRIPT_DIR, "locales")
 
-GITHUB_LOCALE_URL = "https://raw.githubusercontent.com/ProjectRedis/mchrbl-cli/main/locales/"
+GITHUB_LOCALE_URL = "https://raw.githubusercontent.com/GegeDevs/mchrbl-cli/main/locales/"
 
 MENU_BAHASA = {
     "1": {"code": "id", "name": "Bahasa Indonesia"},
@@ -322,7 +322,7 @@ def test_cookie(cookie: str, label: str) -> bool:
 
 # ─────────────────────── UPDATE CHECKER ─────────────────────── #
 def check_update() -> None:
-    BASE          = "https://raw.githubusercontent.com/ProjectRedis/mchrbl-cli/refs/heads/main/"
+    BASE          = "https://raw.githubusercontent.com/GegeDevs/mchrbl-cli/refs/heads/main/"
     url_script    = BASE + "herorbl.py"
     url_changelog = BASE + "changelog.txt"
 
@@ -622,7 +622,7 @@ def main() -> None:
     print(colored("=" * 56,                               Fore.CYAN))
     print(colored("                 MI-COMMUNITY HERO REQ-BL",  Fore.WHITE))
     print(colored(f"                  {CURRENT_VERSION}",    Fore.YELLOW))
-    print(colored("                   GitHub @ProjectRedis",    Fore.BLUE))
+    print(colored("                   GitHub @GegeDevs",    Fore.BLUE))
     print(colored("=" * 56,                               Fore.CYAN))
     print()
 

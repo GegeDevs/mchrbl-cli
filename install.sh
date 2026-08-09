@@ -29,7 +29,7 @@ pip install requests colorama ntplib
 # 4. Unduh script herorbl.py
 SCRIPT_PATH="$HOME/herorbl.py"
 echo "[Info.] Mengunduh herorbl.py..."
-wget -O "$SCRIPT_PATH" "https://raw.githubusercontent.com/ProjectRedis/mchrbl-cli/refs/heads/main/herorbl.py"
+wget -O "$SCRIPT_PATH" "https://raw.githubusercontent.com/GegeDevs/mchrbl-cli/refs/heads/main/herorbl.py"
 
 # 5. Tambahkan alias ubl-go
 echo "[Info.] Membuat alias ubl-go..."

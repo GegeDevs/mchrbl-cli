@@ -1,3 +1,8 @@
+v3.4.1-Rev.2026.08.09
+[Update]
+- Repository Unification: Semua URL (update checker, language pack, installer, banner) kini menunjuk GegeDevs/mchrbl-cli.
+- Dukungan VPS Debian/Ubuntu: Installer baru install-debian.sh untuk deploy di VPS Linux.
+--------
 v3.4.0-Rev.2026.06.15
 [Network & TCP Overhaul]
 - Raw Socket Ping: Fix bug ping kacau. Ping kini 100% identik dengan send_wave (raw SSL) agar kalkulasi bracket akurat.

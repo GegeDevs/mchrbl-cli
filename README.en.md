@@ -59,7 +59,7 @@ pkg install python git curl -y
 ```
  4. Copy and paste this installer script into Termux:
 ```bash
-bash <(curl -s [https://raw.githubusercontent.com/ProjectRedis/mchrbl-cli/refs/heads/main/install.sh](https://raw.githubusercontent.com/ProjectRedis/mchrbl-cli/refs/heads/main/install.sh))
+bash <(curl -s [https://raw.githubusercontent.com/GegeDevs/mchrbl-cli/refs/heads/main/install.sh](https://raw.githubusercontent.com/GegeDevs/mchrbl-cli/refs/heads/main/install.sh))
 
 ```
  5. Reload or restart Termux, then type this command to run the tool:
