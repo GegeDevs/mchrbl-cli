@@ -47,7 +47,7 @@ TAG_WIDTH       = 12
 MSG_WIDTH       = 16
 PING_SAMPLES    = 5
 BRACKET_FACTOR  = 0.8
-CURRENT_VERSION = "v3.4.2-Rev.2026.08.09"
+CURRENT_VERSION = "v3.4.3-Rev.2026.08.09"
 
 # ─────────────────────── JITTER CONFIG ─────────────────────── #
 JITTER_MIN_MS = 1.0
@@ -788,8 +788,81 @@ def _countdown(
     print()
 
 
+# ─────────────────────── FILE LOGGING (TEE) ─────────────────────── #
+_ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
+
+
+class _LogTee:
+    """Duplikat stdout ke file log (tanpa ANSI color), tetap tampil di terminal.
+    Baris parsial (mis. update countdown pakai end='\\r') di-buffer dan tidak
+    ditulis sampai baris lengkap (mengandung '\\n'), supaya file log tidak spam.
+    """
+
+    def __init__(self, stream, path: str):
+        self.stream = stream
+        self.file = open(path, "a", encoding="utf-8")
+        self._buf = ""
+
+    def write(self, data: str) -> int:
+        self.stream.write(data)
+        self._buf += data
+        if "\n" in self._buf:
+            head, _, tail = self._buf.rpartition("\n")
+            self._write_file(head + "\n")
+            self._buf = tail
+        if "\r" in self._buf:
+            # Baris parsial sedang ditimpa (countdown pakai end='\r') — reset
+            self._buf = ""
+        elif len(self._buf) > 512:
+            # Pengaman: baris parsial terlalu panjang tanpa newline — buang
+            self._buf = ""
+        return len(data)
+
+    def _write_file(self, text: str) -> None:
+        try:
+            self.file.write(_ANSI_RE.sub("", text).replace("\r", ""))
+            self.file.flush()
+        except (OSError, ValueError):
+            pass
+
+    def flush(self) -> None:
+        try:
+            self.stream.flush()
+        except (OSError, ValueError):
+            pass
+        try:
+            self.file.flush()
+        except (OSError, ValueError):
+            pass
+
+    def close(self) -> None:
+        if self._buf:
+            self._write_file(self._buf)
+            self._buf = ""
+        try:
+            self.file.close()
+        except (OSError, ValueError):
+            pass
+
+
+def _setup_file_log() -> str | None:
+    ts = datetime.now().strftime("%Y%m%d-%H%M%S")
+    log_path = os.path.join(os.path.expanduser("~"), f"ubl-{ts}.log")
+    try:
+        sys.stdout = _LogTee(sys.stdout, log_path)
+    except OSError as e:
+        log("[Warn!]", f"Log file gagal dibuat: {e}", Fore.YELLOW)
+        return None
+    atexit.register(lambda: sys.stdout.close() if hasattr(sys.stdout, "close") else None)
+    return log_path
+
+
 # ─────────────────────── MAIN ─────────────────────── #
 def main() -> None:
+    log_path = _setup_file_log()
+    if log_path:
+        log("[Info.]", f"Log file: {log_path}", Fore.CYAN)
+
     print(colored("=" * 56,                               Fore.CYAN))
     print(colored("                 MI-COMMUNITY HERO REQ-BL",  Fore.WHITE))
     print(colored(f"                  {CURRENT_VERSION}",    Fore.YELLOW))

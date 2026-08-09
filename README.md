@@ -98,6 +98,7 @@ ubl-go
    ```
 3. Waktu war tetap **22:55 WIB** — pastikan VPS online dan jam tersinkron NTP.
 4. Cookie diambil dari HP lewat sniffer (cara di bawah), lalu tinggal di-paste saat pertama jalan di VPS.
+5. Semua output otomatis tercatat ke file log `~/ubl-<tanggal-jam>.log` — tinggal cek file itu kalau mau lihat hasil war setelah detach tmux.
 
 ---
 

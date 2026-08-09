@@ -99,6 +99,7 @@ ubl-go
    ```
 3. The reset window is still **22:55 WIB** — make sure the VPS is online and NTP-synced.
 4. Capture the cookie on your phone (guide below), then paste it when prompted on the VPS.
+5. All output is automatically written to a log file `~/ubl-<timestamp>.log` — check that file to see the war results after detaching from tmux.
 
 ---
 
