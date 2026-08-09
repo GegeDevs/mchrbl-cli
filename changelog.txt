@@ -1,3 +1,7 @@
+v3.4.6-Rev.2026.08.09
+[Improvement]
+- Auto Token Update: Tidak perlu tekan [u] lagi — cukup paste token baru saat countdown, otomatis dicek & diganti. Aturan slot: A kosong -> A, B kosong -> B, dua-duanya terisi -> bergantian A/B. Diblokir jika <30 detik sebelum war.
+--------
 v3.4.5-Rev.2026.08.09
 [New Feature]
 - Emergency Token Update: Saat countdown berjalan, tekan [u] untuk mengganti Token A/B secara live tanpa kill proses. Diblokir otomatis jika tersisa <30 detik sebelum war.

@@ -65,12 +65,9 @@
   "lang_ok": "Language pack installed!",
   "lang_fail": "Failed to download language: {}",
   "lang_load_fail": "Failed to load language file: {}",
-  "token_update_hint": "Tekan [u] untuk update token darurat",
-  "token_update_slot": "Ganti Token A (1) atau Token B (2)? [default A]: ",
-  "token_update_paste": "Paste Token {} baru: ",
+  "token_update_hint": "Paste token baru kapan saja (otomatis cek & ganti)",
   "token_update_ok": "Token {} berhasil diganti.",
   "token_update_fail": "Token {} baru invalid. Token lama dipertahankan.",
-  "token_update_cancel": "Update token dibatalkan.",
   "token_update_late": "Terlalu dekat dengan war (<30 detik). Update token dibatalkan.",
   "wake_lock": "Wake-lock aktif (Anti-Doze)"
 }

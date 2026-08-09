@@ -47,11 +47,17 @@ TAG_WIDTH       = 12
 MSG_WIDTH       = 16
 PING_SAMPLES    = 5
 BRACKET_FACTOR  = 0.8
-CURRENT_VERSION = "v3.4.5-Rev.2026.08.09"
+CURRENT_VERSION = "v3.4.6-Rev.2026.08.09"
 
 # ─────────────────────── JITTER CONFIG ─────────────────────── #
 JITTER_MIN_MS = 1.0
 JITTER_MAX_MS = 8.0
+
+# ─────────────────────── PASTE DETECTION (TOKEN UPDATE) ─────────────────────── #
+PASTE_MIN_LEN   = 40    # panjang minimal teks paste yang dianggap token
+PASTE_MAX_LEN   = 4096  # pengaman: buffer kebesaran -> buang
+PASTE_QUIET_S   = 0.25  # jeda hening sebelum diproses (anti-potongan paste)
+PASTE_STALE_S   = 5.0   # sisa input terlalu lama & pendek -> buang
 
 # ─────────────────────── PRE-COMPILED (module-level constants) ─────────────────────── #
 _DEVICE_ID_RE = re.compile(r'deviceId=[^;]+')
@@ -112,12 +118,9 @@ _FALLBACK_TEXTS: dict[str, str] = {
     "lang_ok": "Language pack installed!",
     "lang_fail": "Failed to download language: {}",
     "lang_load_fail": "Failed to load language file: {}",
-    "token_update_hint": "Tekan [u] untuk update token darurat",
-    "token_update_slot": "Ganti Token A (1) atau Token B (2)? [default A]: ",
-    "token_update_paste": "Paste Token {} baru: ",
+    "token_update_hint": "Paste token baru kapan saja (otomatis cek & ganti)",
     "token_update_ok": "Token {} berhasil diganti.",
     "token_update_fail": "Token {} baru invalid. Token lama dipertahankan.",
-    "token_update_cancel": "Update token dibatalkan.",
     "token_update_late": "Terlalu dekat dengan war (<30 detik). Update token dibatalkan.",
     "wake_lock": "Wake-lock aktif (Anti-Doze)",
 }
@@ -778,13 +781,17 @@ def _format_remain(ms: float) -> str:
 
 
 def _enter_cbreak():
-    """Aktifkan mode cbreak (baca 1 tombol tanpa Enter). None jika tidak didukung."""
+    """Aktifkan mode cbreak tanpa echo (baca input tanpa Enter, tidak menampilkan
+    karakter yang diketik/di-paste). None jika tidak didukung."""
     try:
         import termios
         import tty
         fd = sys.stdin.fileno()
         old = termios.tcgetattr(fd)
         tty.setcbreak(fd)
+        mode = termios.tcgetattr(fd)
+        mode[3] &= ~termios.ECHO
+        termios.tcsetattr(fd, termios.TCSADRAIN, mode)
         return (fd, old)
     except Exception:
         return None
@@ -823,12 +830,14 @@ def _countdown(
     base_time_ms: int,
     perf_base_ns: int,
     offset_ms:    float,
-    hotkey_handler=None,
+    paste_handler=None,
 ) -> None:
     prefix = colored(f"{'[Wait!]':<{LABEL_WIDTH}}", Fore.CYAN)
     cbreak = _enter_cbreak()
+    buf = ""
+    last_input = 0.0
     try:
-        if hotkey_handler is not None:
+        if paste_handler is not None:
             print(f"{prefix} {_t('token_update_hint')}")
         while True:
             remain = until_ms - get_accurate_now_ms(base_time_ms, perf_base_ns, offset_ms)
@@ -836,13 +845,26 @@ def _countdown(
                 break
             dots = "." * (int(time.time() * 2) % 4)
             print(f"{prefix} {label} {_format_remain(remain):<8} {dots:<3}", end="\r", flush=True)
-            if hotkey_handler is not None:
-                ch = _poll_key(cbreak)
-                if ch:
-                    try:
-                        hotkey_handler(ch, remain)
-                    except Exception as e:
-                        log("[Error.]", f"Hotkey error: {e}", Fore.RED)
+            if paste_handler is not None:
+                data = _poll_key(cbreak)
+                if data:
+                    clean = "".join(ch for ch in data if ch.isprintable() and ch != " ")
+                    if clean:
+                        buf += clean
+                        last_input = time.time()
+                if buf:
+                    now = time.time()
+                    if len(buf) >= PASTE_MIN_LEN and (now - last_input) >= PASTE_QUIET_S:
+                        try:
+                            paste_handler(buf, remain)
+                        except Exception as e:
+                            log("[Error.]", f"Paste handler error: {e}", Fore.RED)
+                        finally:
+                            buf = ""
+                    elif len(buf) >= PASTE_MAX_LEN:
+                        buf = ""
+                    elif (now - last_input) >= PASTE_STALE_S:
+                        buf = ""
             time.sleep(0.05)
     finally:
         _exit_cbreak(cbreak)
@@ -1032,21 +1054,25 @@ def main() -> None:
     except ValueError:
         safety_margin = 30
 
-    # ── 5. Tunggu fase ping ──
-    def _emergency_token_update() -> None:
-        nonlocal cookie_a, cookie_b, valid_a, valid_b
-        print()
-        slot = input(
-            colored(f'{"[Input!]":<{LABEL_WIDTH}}', Fore.BLUE) + " " + _t("token_update_slot")
-        ).strip().lower()
-        target = "B" if slot in ("2", "b") else "A"
-        raw = getpass.getpass(
-            colored(f'{"[Input!]":<{LABEL_WIDTH}}', Fore.BLUE) + " " + _t("token_update_paste", target)
-        )
-        new_cookie = _normalize_cookie(raw)
-        if not new_cookie:
-            log("[Info.]", _t("token_update_cancel"), Fore.WHITE)
+    # ── 5. Tunggu fase ping (paste token darurat aktif di sini) ──
+    replace_next = "A"  # slot berikutnya saat A & B sudah terisi (A → B → A ...)
+
+    def _handle_paste(buf: str, remain_ms: float) -> None:
+        nonlocal cookie_a, cookie_b, valid_a, valid_b, replace_next
+        if remain_ms < 30_000:
+            log("[Warn!]", _t("token_update_late"), Fore.YELLOW)
             return
+        new_cookie = _normalize_cookie(buf)
+        if not new_cookie:
+            return
+        # Tentukan slot tujuan
+        if not valid_a:
+            target = "A"
+        elif not valid_b:
+            target = "B"
+        else:
+            target = replace_next
+            replace_next = "B" if replace_next == "A" else "A"
         log("[Check!]", _t("cookie_check", target), Fore.MAGENTA)
         if test_cookie(new_cookie, f"Token-{target}"):
             if target == "A":
@@ -1057,18 +1083,10 @@ def main() -> None:
         else:
             log("[Error.]", _t("token_update_fail", target), Fore.RED)
 
-    def _hotkey(ch: str, remain_ms: float) -> None:
-        if ch.lower() != "u":
-            return
-        if remain_ms < 30_000:
-            log("[Warn!]", _t("token_update_late"), Fore.YELLOW)
-            return
-        _emergency_token_update()
-
     _countdown(
         _t("wait_start"), target_ms - 15_000,
         time_base, perf_base, ntp_offset,
-        hotkey_handler=_hotkey,
+        paste_handler=_handle_paste,
     )
 
     # ── 6. Ping sampling ──
