@@ -1,3 +1,7 @@
+v3.4.2-Rev.2026.08.09
+[Improvement]
+- Cookie Normalization: Input cookie kini menerima 2 format — lengkap ("new_bbs_serviceToken=...") atau token polos tanpa prefix (otomatis ditambahkan). Toleransi label "Cookie:" ikut ter-copy.
+--------
 v3.4.1-Rev.2026.08.09
 [Update]
 - Repository Unification: Semua URL (update checker, language pack, installer, banner) kini menunjuk GegeDevs/mchrbl-cli.

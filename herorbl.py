@@ -47,7 +47,7 @@ TAG_WIDTH       = 12
 MSG_WIDTH       = 16
 PING_SAMPLES    = 5
 BRACKET_FACTOR  = 0.8
-CURRENT_VERSION = "v3.4.1-Rev.2026.08.09"
+CURRENT_VERSION = "v3.4.2-Rev.2026.08.09"
 
 # ─────────────────────── JITTER CONFIG ─────────────────────── #
 JITTER_MIN_MS = 1.0
@@ -395,6 +395,24 @@ def get_big_cores(threshold: int = 2_000_000) -> list[int]:
 
 
 # ─────────────────────── TOKEN CHECK ─────────────────────── #
+def _normalize_cookie(raw: str) -> str:
+    """Terima 2 format input cookie:
+    1) 'new_bbs_serviceToken=...'  (lengkap, seperti di sniffer)
+    2) 'OCrooowTsc...'             (token polos tanpa prefix) -> prefix otomatis ditambah.
+    Bonus: toleransi bila user ikut menyalin label 'Cookie:'.
+    """
+    c = raw.strip()
+    if not c:
+        return c
+    m = re.match(r'^cookie:\s*', c, re.IGNORECASE)
+    if m:
+        c = c[m.end():].strip()
+    first_field = c.split(";", 1)[0].strip()
+    if not first_field.lower().startswith("new_bbs_servicetoken="):
+        c = "new_bbs_serviceToken=" + c
+    return c
+
+
 def test_cookie(cookie: str, label: str) -> bool:
     try:
         req = urllib.request.Request(
@@ -797,9 +815,11 @@ def main() -> None:
     while not (valid_a or valid_b):
 
         if not valid_a:
-            cookie_a = getpass.getpass(
-                colored(f'{"[Input!]":<{LABEL_WIDTH}}', Fore.BLUE) + " " + _t("cookie_a") + _t("cookie_skip")
-            ).strip()
+            cookie_a = _normalize_cookie(
+                getpass.getpass(
+                    colored(f'{"[Input!]":<{LABEL_WIDTH}}', Fore.BLUE) + " " + _t("cookie_a") + _t("cookie_skip")
+                )
+            )
 
             if cookie_a:
                 log("[Success.]", _t("cookie_acc", "A") + colored("**********", Fore.WHITE), Fore.GREEN)
@@ -814,9 +834,11 @@ def main() -> None:
         print()
 
         if not valid_b:
-            cookie_b = getpass.getpass(
-                colored(f'{"[Input!]":<{LABEL_WIDTH}}', Fore.BLUE) + " " + _t("cookie_b") + _t("cookie_skip")
-            ).strip()
+            cookie_b = _normalize_cookie(
+                getpass.getpass(
+                    colored(f'{"[Input!]":<{LABEL_WIDTH}}', Fore.BLUE) + " " + _t("cookie_b") + _t("cookie_skip")
+                )
+            )
 
             if cookie_b:
                 log("[Success.]", _t("cookie_acc", "B") + colored("**********", Fore.WHITE), Fore.GREEN)
